@@ -2,13 +2,22 @@ import java.net.*;
 import java.io.*;
 import java.util.concurrent.*;
 
+//OTIS:
+//Please do the following
+/** 
+ * Validate username
+ * Check for duplicates
+ * Validate message
+ * Ensure not too many messages from one user within single timeframe
+*/
+
 public class LincolnServer {
 	private int maxUsers = 10;
 	private ServerSocket serverSocket;
 	private Socket clientSocket;
 	private Socket[] clients = new Socket[maxUsers];
+	private String[] usernames = new String[maxUsers];
 	private int numClients = 0;
-	//private ThreadPoolExecutor pool = Executor.newFixedThreadPool(2);
 	
 	public void start(int port) throws Exception{
 		serverSocket = new ServerSocket(port);
@@ -48,7 +57,7 @@ private class ClientHandler extends Thread{
 	private BufferedReader in;
 	
 	public ClientHandler(Socket client){
-		this.clientSocket = client;
+		clientSocket = client;
 	}
 	
 	public void stopConnection() throws Exception{
