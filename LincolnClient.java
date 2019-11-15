@@ -28,6 +28,7 @@ public class LincolnClient {
 
         //check for duplicate username as well
         //make serverside checking
+        //assign random username
         while(invalidUsername(username)){
             username = input.nextLine();
         }
@@ -65,30 +66,23 @@ public class LincolnClient {
     //Writes to server
     private class ClientOutput extends Thread{
         private Socket s;
-        private String username;
         private PrintWriter out;
         private String response;
 
-        public ClientOutput(Socket s, String username){
+        public ClientOutput(Socket s){
             this.s = s;
             this.out = new PrintWriter(s.getOutputStream(), true);
-            this.username = username;
         }
 
         public void run(){
 
+            //constantly send messages to server
             while(s.isConnected()){
                 response = input.nextLine();
                 //check for valid response (limit length, prevent spam, add delay)
-                sendMessage(username + ": " + response);
+                out.println(response);
             }
 
-        }
-
-        private String sendMessage(String msg) throws Exception{
-            out.println(msg);
-            String resp = in.readLine();
-            return resp;
         }
 
     }
