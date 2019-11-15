@@ -9,6 +9,7 @@ import java.util.concurrent.*;
  * Check for duplicates
  * Validate message
  * Ensure not too many messages from one user within single timeframe
+ * Send messages to every User object except the one sending containing username + ": " + message
 */
 
 public class LincolnServer {
