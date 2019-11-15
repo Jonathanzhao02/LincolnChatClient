@@ -31,7 +31,6 @@ public class LincolnServer {
 
 			if(numClients < maxUsers){
 				clients[numClients] = new User(clientSocket);
-				System.out.println("Connected with " + clientSocket.getRemoteSocketAddress().toString());
 				new ClientHandler(clients[numClients]).start();
 				numClients++;
 			} else{
@@ -167,14 +166,16 @@ class ClientHandler extends Thread {
 				inputLine = in.readLine();
 			}
 
-			System.out.println("input: " + inputLine);
+			System.out.println("Username input: " + inputLine);
 
 			if(validUsername(inputLine)){
 				client.setUsername(inputLine);
 				client.sendMessage("Username accepted. Start chatting!");
+				System.out.println("Assigned valid name");
 			} else{
 				client.setUsername(randomName());
 				client.sendMessage("Username not accepted. Random username " + client.getUsername() + " assigned. Start chatting!");
+				System.out.println("Assigned random name");
 			}
 
 			System.out.println("Client now speaking");
@@ -190,9 +191,10 @@ class ClientHandler extends Thread {
 					sendToAll(client.getUsername() + ": " + inputLine);
 				} else{
 					out.println("Message not delivered");
+					System.out.println("Message not delivered");
 				}
 
-				System.out.println(inputLine);
+				System.out.println(client.getUsername() + ": " + inputLine);
 			}
 
 		} catch(Exception E){
