@@ -3,10 +3,31 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class LincolnClient {
+import javafx.application.*;
+import javafx.stage.*;
+import javafx.scene.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+
+//Introduce UI for textfield + other
+public class LincolnClient extends Application{
     private Socket clientSocket;
-    private static String username = "";
+    private String username = "";
  
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    public void start(Stage mainStage){
+
+        try{
+            startClient();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
     private void startConnection(String ip, int port) throws Exception{
 		System.out.println("Connecting...");
         clientSocket = new Socket(ip, port);
@@ -17,10 +38,9 @@ public class LincolnClient {
         clientSocket.close();
     }
 	
-	public static void main(String[] args) throws Exception{
+	private void startClient() throws Exception{
         Scanner input = new Scanner(System.in);
-		LincolnClient client = new LincolnClient();
-        client.startConnection("10.186.46.126", 53);
+        startConnection("10.186.42.222", 53);
         System.out.println("Enter 'exit' to exit");
         System.out.println("Please enter a username (less than 20 characters)");
         int tries = 0;
@@ -43,7 +63,7 @@ public class LincolnClient {
             PrintWriter out = null;
 
             try{
-                out = new PrintWriter(client.clientSocket.getOutputStream(), true);
+                out = new PrintWriter(clientSocket.getOutputStream(), true);
                 out.write(username);
             } catch(Exception e){
                 System.out.println("Writer could not be initialized.");
@@ -52,7 +72,7 @@ public class LincolnClient {
             String response;
 
             //constantly send messages to server
-            while(client.clientSocket.isConnected()){
+            while(clientSocket.isConnected()){
                 response = input.nextLine();
                 //check for valid response (limit length, prevent spam, add delay)
                 out.println(response);
@@ -65,7 +85,7 @@ public class LincolnClient {
             BufferedReader in = null;
 
             try {
-                in = new BufferedReader(new InputStreamReader(client.clientSocket.getInputStream()));
+                in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             } catch(Exception e){
                 System.out.println("Reader could not be initialized.");
             }
@@ -73,7 +93,7 @@ public class LincolnClient {
             String output;
 
             //constantly read from output stream
-            while(client.clientSocket.isConnected()){
+            while(clientSocket.isConnected()){
 
                 try{
                     output = in.readLine();
@@ -93,12 +113,12 @@ public class LincolnClient {
         inputThread.start();
         outputThread.start();
         
-        while(client.clientSocket.isConnected()){
+        while(clientSocket.isConnected()){
 
         }
 
         input.close();
-		client.stopConnection();
+		stopConnection();
 	}
     
     private static Boolean invalidUsername(String s){

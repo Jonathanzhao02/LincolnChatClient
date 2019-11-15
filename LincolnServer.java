@@ -12,6 +12,7 @@ import java.util.*;
  * Allow kicking of users
  * Possible profanity filter start
  * Ensure not too many messages from one user within single timeframe
+ * Check not multiple connections from same user
 */
 
 public class LincolnServer {
@@ -19,7 +20,6 @@ public class LincolnServer {
 	private ServerSocket serverSocket;
 	private Socket clientSocket;
 	private User[] clients = new User[maxUsers];
-	private int numClients = 0;
 	
 	public void start(int port) throws Exception{
 		serverSocket = new ServerSocket(port);
@@ -28,18 +28,35 @@ public class LincolnServer {
 
 		while(true){
 			clientSocket = serverSocket.accept();
-
-			if(numClients < maxUsers){
-				clients[numClients] = new User(clientSocket);
-				new ClientHandler(clients[numClients]).start();
-				numClients++;
-			} else{
-				new PrintWriter(clientSocket.getOutputStream(), true).println("Server cannot accept more clients!");
-				clientSocket.close();
-			}
-
+			tryAdd(clientSocket);
 		}
 		
+	}
+
+	public void tryAdd(Socket s){
+		Boolean added = false;
+
+		try{
+			for(int i = 0; i < maxUsers; i++){
+
+				if(clients[i] == null || !clients[i].getSocket().isConnected()){
+					clients[i] = new User(s);
+					new ClientHandler(clients[i]).start();
+					i = maxUsers;
+					added = true;
+				}
+
+			}
+
+			if(!added){
+				new PrintWriter(s.getOutputStream(), true).println("Server cannot accept more clients!");
+				s.close();
+			}
+
+		} catch(Exception e){
+
+		}
+
 	}
 	
 	public void stop() throws Exception{
@@ -63,6 +80,18 @@ class ClientHandler extends Thread {
 	public static void setUserList(User[] list){
 		userList = list;
 	}
+
+	public static void removeUser(User u){
+
+		for(int i = 0; i < userList.length; i++){
+
+			if(userList[i] == u){
+				userList[i] = null;
+			}
+
+		}
+
+	}
 	
 	public ClientHandler(User client){
 		this.client = client;
@@ -72,7 +101,8 @@ class ClientHandler extends Thread {
 	public void stopConnection() throws Exception{
         in.close();
         out.close();
-        clientSocket.close();
+		clientSocket.close();
+		ClientHandler.removeUser(this.client);
 	}
 
 	private Boolean validUsername(String s){
@@ -180,7 +210,7 @@ class ClientHandler extends Thread {
 
 			System.out.println("Client now speaking");
 			
-			while ((inputLine = in.readLine()) != null) {
+			while (clientSocket.isConnected() && (inputLine = in.readLine()) != null) {
 				
 				if ("exit".equals(inputLine)) {
 					out.println("Goodbye");
