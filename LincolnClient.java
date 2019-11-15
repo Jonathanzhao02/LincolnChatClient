@@ -17,6 +17,7 @@ public class LincolnClient extends Application{
     private BorderPane mainPane = new BorderPane();
     private TextField userInput = new TextField();
     private TextArea userOutput = new TextArea();
+    private Button clearBtn = new Button("Clear");
     private Scene mainScene;
     private Stage mainStage;
 
@@ -43,7 +44,7 @@ public class LincolnClient extends Application{
                 }
 
             } catch(Exception e){
-                System.out.println("Uh oh! Something went wrong.");
+                //System.out.println("Uh oh! Something went wrong.");
             }
 
         }
@@ -67,14 +68,20 @@ public class LincolnClient extends Application{
     }
 
     private void createScene(){
-        userInput.setPrefWidth(500);
-        userInput.setPrefHeight(20);
+        HBox controlPane = new HBox(userInput, clearBtn);
         userOutput.setPrefWidth(500);
         userOutput.setPrefHeight(400);
         userOutput.setEditable(false);
+        userInput.setPrefHeight(20);
+        userInput.setPrefWidth(400);
+        clearBtn.setPrefHeight(20);
+        clearBtn.setPrefWidth(100);
+        clearBtn.setOnAction(e -> {
+            clearOutput();
+        });
 
         mainPane.setCenter(userOutput);
-        mainPane.setBottom(userInput);
+        mainPane.setBottom(controlPane);
         mainScene = new Scene(mainPane, 500, 500);
         mainStage.setScene(mainScene);
         mainStage.show();
@@ -86,7 +93,7 @@ public class LincolnClient extends Application{
             stopConnection();
             outputThread.interrupt();
         } catch(Exception e){
-            e.printStackTrace();
+            
         }
 
     }
@@ -100,11 +107,27 @@ public class LincolnClient extends Application{
     }
 
     private void startConnection(String ip, int port) throws Exception{
-        //System.out.println("Connecting");
-		output("Connecting...");
-        clientSocket = new Socket(ip, port);
-        output("Connected to " + clientSocket.getInetAddress());
-        //System.out.println("Connected");
+        output("Note: you MUST be connected to pps-wifi-guest to connect!");
+        output("Connecting...");
+        
+        Platform.runLater(() -> {
+            try {
+                clientSocket = new Socket(ip, port);
+                output("Connected to " + clientSocket.getInetAddress());
+                setupClient();
+            } catch(Exception e){
+                output("Could not connect. Retrying...");
+
+                Platform.runLater(() -> {
+                    try{
+                        startClient();
+                    } catch(Exception E){
+    
+                    }
+                });
+
+            }
+        });
     }
  
     private void stopConnection() throws Exception{
@@ -112,7 +135,6 @@ public class LincolnClient extends Application{
     }
 
     private void setupClient(){
-        output("Enter 'exit' to exit");
         output("Please enter a username (less than 20 characters)");
 
         userInput.setOnAction(e -> {
@@ -151,8 +173,8 @@ public class LincolnClient extends Application{
     }
 	
 	private void startClient() throws Exception{
+        clearOutput();
         startConnection("10.186.66.95", 53);
-        setupClient();
 	}
     
     private static Boolean invalidUsername(String s){

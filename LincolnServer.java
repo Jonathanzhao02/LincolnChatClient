@@ -7,33 +7,58 @@ import java.util.*;
 //Please do the following
 /** 
  * Maybe debug username problems/add more validation to it?
- * Improve messaging
- * Slap application layout over this
- * Allow kicking of users
+ * Improve messaging in some way
+ * Allow kicking of users (perhaps using javafx application layout)
  * Possible profanity filter start
  * Ensure not too many messages from one user within single timeframe
- * Check not multiple connections from same user
 */
 
 public class LincolnServer {
-	private int maxUsers = 10;
+	private int maxUsers = 100;
 	private ServerSocket serverSocket;
 	private Socket clientSocket;
 	private User[] clients = new User[maxUsers];
 	
-	public void start(int port) throws Exception{
+	private void start(int port) throws Exception{
 		serverSocket = new ServerSocket(port);
 		ClientHandler.setUserList(clients);
 		System.out.println("Server started");
 
 		while(true){
 			clientSocket = serverSocket.accept();
-			tryAdd(clientSocket);
+
+			if(!alreadyConnected(clientSocket)){
+				tryAdd(clientSocket);
+			} else{
+				
+				try{
+					new PrintWriter(clientSocket.getOutputStream(), true).println("Already connected on your device!");
+					clientSocket.close();
+				} catch(Exception e){
+					
+				}
+
+			}
+
 		}
 		
 	}
 
-	public void tryAdd(Socket s){
+	private Boolean alreadyConnected(Socket s){
+		InetAddress ipv4 = s.getInetAddress();
+
+		for(int i = 0; i < clients.length; i++){
+
+			if(clients[i] != null && ipv4.equals(clients[i].getSocket().getInetAddress())){
+				return true;
+			}
+
+		}
+
+		return false;
+	}
+
+	private void tryAdd(Socket s){
 		Boolean added = false;
 
 		try{
@@ -192,7 +217,7 @@ class ClientHandler extends Thread {
 			
 			String inputLine = "";
 
-			while(inputLine.length() == 0){
+			while(inputLine.length() == 0 && clientSocket.isConnected() && !clientSocket.isClosed()){
 				inputLine = in.readLine();
 			}
 
@@ -210,7 +235,7 @@ class ClientHandler extends Thread {
 
 			System.out.println("Client now speaking");
 			
-			while (clientSocket.isConnected() && (inputLine = in.readLine()) != null) {
+			while (clientSocket.isConnected() && !clientSocket.isClosed() && (inputLine = in.readLine()) != null) {
 				
 				if ("exit".equals(inputLine)) {
 					out.println("Goodbye");
