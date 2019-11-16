@@ -18,6 +18,10 @@ public class LincolnClient extends Application{
     private TextField userInput = new TextField();
     private TextArea userOutput = new TextArea();
     private Button clearBtn = new Button("Clear");
+
+    private Button ipv4Guest = new Button("Pps-wifi-guest");
+    private Button ipv4Wifi = new Button("Pps-wifi");
+
     private Scene mainScene;
     private Stage mainStage;
 
@@ -58,13 +62,6 @@ public class LincolnClient extends Application{
     public void start(Stage mainStage){
         this.mainStage = mainStage;
         createScene();
-
-        try{
-            startClient();
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-
     }
 
     private void createScene(){
@@ -80,6 +77,21 @@ public class LincolnClient extends Application{
             clearOutput();
         });
 
+        HBox serverPane = new HBox(ipv4Guest, ipv4Wifi);
+        ipv4Guest.setPrefHeight(40);
+        ipv4Guest.setPrefWidth(250);
+        ipv4Guest.setOnAction(e -> {
+            startConnection("10.186.66.95", 53);
+        });
+
+        ipv4Wifi.setPrefHeight(40);
+        ipv4Wifi.setPrefWidth(250);
+        ipv4Wifi.setOnAction(e -> {
+            startConnection("10.186.42.222", 53);
+        });
+
+        output("Please select a server to connect to.");
+        mainPane.setTop(serverPane);
         mainPane.setCenter(userOutput);
         mainPane.setBottom(controlPane);
         mainScene = new Scene(mainPane, 500, 500);
@@ -106,26 +118,19 @@ public class LincolnClient extends Application{
         userOutput.clear();
     }
 
-    private void startConnection(String ip, int port) throws Exception{
-        output("Note: you MUST be connected to pps-wifi-guest to connect!");
+    private void startConnection(String ip, int port){
+        clearOutput();
         output("Connecting...");
         
         Platform.runLater(() -> {
             try {
                 clientSocket = new Socket(ip, port);
                 output("Connected to " + clientSocket.getInetAddress());
+                ipv4Guest.setOnAction(e -> {});
+                ipv4Wifi.setOnAction(e -> {});
                 setupClient();
             } catch(Exception e){
-                output("Could not connect. Retrying...");
-
-                Platform.runLater(() -> {
-                    try{
-                        startClient();
-                    } catch(Exception E){
-    
-                    }
-                });
-
+                output("Could not connect.");
             }
         });
     }
@@ -171,11 +176,6 @@ public class LincolnClient extends Application{
             userInput.clear();
         });
     }
-	
-	private void startClient() throws Exception{
-        clearOutput();
-        startConnection("10.186.66.95", 53);
-	}
     
     private static Boolean invalidUsername(String s){
         int currentChar;
