@@ -6,11 +6,11 @@ import java.util.*;
 //OTIS:
 //Please do the following
 /** 
- * Maybe debug username problems/add more validation to it?
+ * Maybe debug username problems/add more validation to it? (WORKING?)
  * Improve messaging in some way
  * Allow kicking of users (perhaps using javafx application layout)
- * Possible profanity filter start
- * Ensure not too many messages from one user within single timeframe
+ * Possible profanity filter start (WORKING)
+ * Ensure not too many messages from one user within single timeframe (DONE)
 */
 
 public class LincolnServer {
@@ -27,18 +27,23 @@ public class LincolnServer {
 		while(true){
 			clientSocket = serverSocket.accept();
 
-			if(!alreadyConnected(clientSocket)){
-				tryAdd(clientSocket);
-			} else{
-				
-				try{
-					new PrintWriter(clientSocket.getOutputStream(), true).println("Already connected on your device!");
-					clientSocket.close();
-				} catch(Exception e){
-					
-				}
 
-			}
+			tryAdd(clientSocket);
+			// I turned off already connected testing cause it was
+			// annoying to test with. We should still reenable it
+			// once we start actually running this.
+			//if(!alreadyConnected(clientSocket)){
+			//	tryAdd(clientSocket);
+			//} else{
+				
+				//try{
+				//	new PrintWriter(clientSocket.getOutputStream(), true).println("Already connected on your device!");
+				//	clientSocket.close();
+				//} catch(Exception e){
+				//	
+				//}
+
+			//}
 
 		}
 		
@@ -131,22 +136,22 @@ class ClientHandler extends Thread {
 	}
 
 	private Boolean validUsername(String s){
-		int currentChar;
+		boolean[] checks = new boolean[4];
+		checks[0] = checkWordLength(s,20);
+		checks[1] = checkSwears(s);
+		checks[2] = checkCharRange(s, 32, 126);
+		checks[3] = checkDuplicate(s); //Checks duplicate usernames
 
-        if(s.length() > 20 || s.length() == 0){
-            return false;
-        }
+		boolean result = true;
 
-        for(int i = 0; i < s.length(); i++){
-            currentChar = s.charAt(i);
+		for (int i = 0; i < checks.length; i++) {
+			if (!checks[i]) {
+				result = false;
+				//returns false if any checks fail, true in any other situation
+			}
+		}
 
-            if(currentChar < 32 || currentChar > 126){
-                return false;
-            }
-
-        }
-
-        return !checkDuplicate(s);
+		return result;
 	}
 
 	private Boolean checkDuplicate(String s){
@@ -158,26 +163,43 @@ class ClientHandler extends Thread {
 				name = userList[i].getUsername();
 
 				if(s.equals(name)){
-					return true;
+					return false; // Inverted this because checks should show if pass (no dup) or fail (dup)
 				}
 
 			}
 
 		}
 
-		return false;
+		return true;
+	}
+
+	private boolean checkCharRange(String checkString, int minChar, int maxChar) {
+		char currentChar;
+		//Checks if a string has all characters in a certain range
+        for(int i = 0; i < checkString.length(); i++){
+            currentChar = checkString.charAt(i);
+
+            if(currentChar < minChar || currentChar > maxChar){
+                return false;
+            }
+
+		}
+		return true;
 	}
 
 	private String randomName(){
 		Random r = new Random();
 		String newName = "";
+		int randomint = 5;
 		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz 1234567890!@#$%^&*()~=-+_{}[]|<>,./?;:";
 		int length = alphabet.length();
 
-		while(checkDuplicate(newName) && !validUsername(newName)){
+		while(!validUsername(newName)){
 			newName = "";
+			randomint = r.nextInt(21); //I fixed the random username code
 
-			for(int i = 0; i < r.nextInt(21); i++){
+
+			for(int i = 0; i < randomint; i++){
 				newName += alphabet.charAt(r.nextInt(length));
 			}
 
@@ -187,13 +209,54 @@ class ClientHandler extends Thread {
 	}
 	
 	private Boolean validMessage(String s){
+		//Running through all checks
+		boolean[] checks = new boolean[3]; //Number of checks = 3
+		checks[0] = checkMessageTime(s, client);
+		checks[1] = checkWordLength(s, 200);
+		checks[2] = checkSwears(s);
 
-		if(s.length() > 0 && s.length() < 200){
-			return true;
-		} else{
-			return false;
+		boolean result = true;
+
+		for (int i = 0; i < checks.length; i++) {
+			if (!checks[i]) {
+				result = false;
+				//returns false if any checks fail, true in any other situation
+			}
 		}
 
+		return result;
+	}
+
+	private static boolean checkMessageTime(String checkString, User user) {
+
+		if ( new Date().getTime() - user.getTime() > 500) {
+			//Prevents more than 3 messages per second
+			//To change this modify 500 to 1000/desired messages per second
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	private static boolean checkWordLength (String checkString, int maxlength) {
+		if(checkString.length() > 0 && checkString.length() < maxlength){
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	private static boolean checkSwears(String checkString) {
+		String[] forbidden = {"fuck","shit","bitch","ass"}; //Feel free to add more
+
+		for (int i = 0; i < forbidden.length; i++) {
+			if (checkString.contains(forbidden[i])) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private void sendToAll(String s){
@@ -243,6 +306,7 @@ class ClientHandler extends Thread {
 				}
 				
 				if(validMessage(inputLine)){
+					client.sent();
 					sendToAll(client.getUsername() + ": " + inputLine);
 				} else{
 					out.println("Message not delivered");
