@@ -9,8 +9,6 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-//Make text wrap
-//Include server discovery code
 public class LincolnClient extends Application{
     private Socket clientSocket;
     private PrintWriter out = null;
