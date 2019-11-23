@@ -19,11 +19,74 @@ public class LincolnClient extends Application{
     private TextArea userOutput = new TextArea();
     private Button clearBtn = new Button("Clear");
 
-    private Button ipv4Guest = new Button("Pps-wifi-guest");
-    private Button ipv4Wifi = new Button("Pps-wifi");
-
     private Scene mainScene;
     private Stage mainStage;
+
+    private LinkedBlockingQueue<InetAddress> ip = new LinkedBlockingQueue<InetAddress>();
+
+    private Thread discoveryThread =
+    new Thread(() -> {
+
+        try{
+            DatagramSocket discSocket = new DatagramSocket();
+            discSocket.setBroadcast(true);
+
+            byte[] sendData = "LCC_DISCOVER_REQUEST".getBytes();
+
+            try{
+                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("255.255.255.255"), 8888);
+                discSocket.send(sendPacket);
+                //System.out.println("Sent packet to 255.255.255.255 (DEFAULT)");
+            } catch(Exception e){e.printStackTrace();}
+
+            Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+
+            while(interfaces.hasMoreElements()){
+                NetworkInterface networkInterface = (NetworkInterface) interfaces.nextElement();
+
+                if(networkInterface.isLoopback()){
+                    continue;
+                }
+
+                for(InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()){
+                    InetAddress broadcast = interfaceAddress.getBroadcast();
+
+                    if(broadcast == null){
+                        continue;
+                    }
+
+                    try{
+                        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, broadcast, 53);
+                        discSocket.send(sendPacket);
+                    } catch(Exception e){
+                        //e.printStackTrace();
+                    }
+
+                    //System.out.println("Sent packet to " + broadcast.getHostAddress() + "; Interface: " + networkInterface.getDisplayName());
+                }
+
+            }
+
+            //System.out.println("Now waiting for reply");
+            byte[] recvBuf = new byte[15000];
+            DatagramPacket receivePacket = new DatagramPacket(recvBuf, recvBuf.length);
+            discSocket.receive(receivePacket);
+            //System.out.println("Broadcast response from server: " + receivePacket.getAddress().getHostAddress());
+            String message = new String(receivePacket.getData()).trim();
+
+            if(message.equals("LCC_DISCOVER_RESPONSE")){
+                //System.out.println("Found server!");
+                ip.add(receivePacket.getAddress());
+            } else{
+                System.out.println("Received " + message);
+            }
+
+            discSocket.close();
+        } catch(IOException e){
+            e.printStackTrace();
+        }
+
+    });
 
     private Thread outputThread = 
     new Thread(() -> {
@@ -62,6 +125,17 @@ public class LincolnClient extends Application{
     public void start(Stage mainStage){
         this.mainStage = mainStage;
         createScene();
+        //output("Please select a server to connect to.");
+        discoveryThread.start();
+
+        try{
+            InetAddress serverIp = ip.poll(2000, TimeUnit.MILLISECONDS);    //Perhaps place on separate thread to prevent client from freezing on startup
+            startConnection(serverIp, 53);
+        } catch(Exception e){
+            output("Failed to connect");
+            e.printStackTrace();
+        }
+
     }
 
     private void createScene(){
@@ -77,21 +151,8 @@ public class LincolnClient extends Application{
             clearOutput();
         });
 
-        HBox serverPane = new HBox(ipv4Guest, ipv4Wifi);
-        ipv4Guest.setPrefHeight(40);
-        ipv4Guest.setPrefWidth(250);
-        ipv4Guest.setOnAction(e -> {
-            startConnection("10.186.66.95", 53);
-        });
-
-        ipv4Wifi.setPrefHeight(40);
-        ipv4Wifi.setPrefWidth(250);
-        ipv4Wifi.setOnAction(e -> {
-            startConnection("10.186.42.222", 53);
-        });
-
-        output("Please select a server to connect to.");
-        mainPane.setTop(serverPane);
+        userOutput.setWrapText(true);
+        //mainPane.setTop(serverPane);
         mainPane.setCenter(userOutput);
         mainPane.setBottom(controlPane);
         mainScene = new Scene(mainPane, 500, 500);
@@ -118,16 +179,14 @@ public class LincolnClient extends Application{
         userOutput.clear();
     }
 
-    private void startConnection(String ip, int port){
+    private void startConnection(InetAddress servIp, int port){
         clearOutput();
         output("Connecting...");
         
         Platform.runLater(() -> {
             try {
-                clientSocket = new Socket(ip, port);
+                clientSocket = new Socket(servIp, port);
                 output("Connected to " + clientSocket.getInetAddress());
-                ipv4Guest.setOnAction(e -> {});
-                ipv4Wifi.setOnAction(e -> {});
                 setupClient();
             } catch(Exception e){
                 output("Could not connect.");
