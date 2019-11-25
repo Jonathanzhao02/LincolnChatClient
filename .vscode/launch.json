@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - SwearTester",
+            "request": "launch",
+            "mainClass": "SwearTester",
+            "projectName": "LincolnChatClient_914fa1fa"
+        }
+    ]
+}
