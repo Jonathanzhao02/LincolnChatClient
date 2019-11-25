@@ -199,8 +199,6 @@ class SwearTester {
                     }
                 }
 
-
-                modifiables.set(arrayindex,((String) modifiables.get(arrayindex)).substring(0,1));
             }
             arrayindex++;
         }
