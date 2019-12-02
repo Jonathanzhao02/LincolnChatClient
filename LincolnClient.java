@@ -130,7 +130,7 @@ public class LincolnClient extends Application{
     private Boolean checkConnection(DatagramSocket s, InetAddress i){
         try{
             byte[] sendMsg = "LCC_CHECK_CONNECTION".getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(sendMsg, sendMsg.length, i, 53);
+            DatagramPacket sendPacket = new DatagramPacket(sendMsg, sendMsg.length, i, 1337);
             s.send(sendPacket);
 
             byte[] recvBuf = new byte[15000];
