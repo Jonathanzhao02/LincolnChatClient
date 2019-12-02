@@ -90,8 +90,23 @@ public class LincolnServer {
 		}
 
 	}
+
+	private void shutdownUsers(){
+
+		for(int i = 0; i < maxUsers; i++){
+
+			try{
+				clients[i].getSocket().close();
+			} catch(Exception e){
+				e.printStackTrace();
+			}
+
+		}
+
+	}
 	
 	public void stop() throws Exception{
+		shutdownUsers();
         serverSocket.close();
     }
 	

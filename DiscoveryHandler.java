@@ -35,6 +35,13 @@ public class DiscoveryHandler extends Thread {
                     socket.send(sendPacket);
 
                     System.out.println("Discovery sent packet " + new String(sendPacket.getData()) + " to " + packet.getSocketAddress());
+                } else if(message.equals("LCC_CHECK_CONNECTION")){
+                    byte[] sendData = "LCC_CONNECTED".getBytes();
+
+                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, packet.getAddress(), packet.getPort());
+                    socket.send(sendPacket);
+
+                    System.out.println("Discovery sent check packet to " + packet.getSocketAddress());
                 }
 
             }

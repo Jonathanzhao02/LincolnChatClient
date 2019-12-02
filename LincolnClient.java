@@ -23,6 +23,7 @@ public class LincolnClient extends Application{
     private Stage mainStage;
 
     private LinkedBlockingQueue<InetAddress> ip = new LinkedBlockingQueue<InetAddress>();
+    private volatile Boolean connected = false;
 
     private Thread discoveryThread =
     new Thread(() -> {
@@ -77,12 +78,19 @@ public class LincolnClient extends Application{
             if(message.equals("LCC_DISCOVER_RESPONSE")){
                 //System.out.println("Found server!");
                 ip.add(receivePacket.getAddress());
+                discSocket.setSoTimeout(1000);
+
+                while(true){
+                    Thread.sleep(5000);
+                    connected = checkConnection(discSocket, receivePacket.getAddress());
+                }
+
             } else{
                 System.out.println("Received " + message);
             }
 
             discSocket.close();
-        } catch(IOException e){
+        } catch(Exception e){
             e.printStackTrace();
         }
 
@@ -101,7 +109,7 @@ public class LincolnClient extends Application{
         String output;
 
         //constantly read from output stream
-        while(clientSocket.isConnected() && !clientSocket.isClosed()){
+        while(clientSocket.isConnected() && !clientSocket.isClosed() && connected){
 
             try{
                 output = in.readLine();
@@ -116,7 +124,35 @@ public class LincolnClient extends Application{
 
         }
 
+        output("Lost connectin with server, please restart");
     });
+
+    private Boolean checkConnection(DatagramSocket s, InetAddress i){
+        try{
+            byte[] sendMsg = "LCC_CHECK_CONNECTION".getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendMsg, sendMsg.length, i, 53);
+            s.send(sendPacket);
+
+            byte[] recvBuf = new byte[15000];
+            DatagramPacket receivePacket = new DatagramPacket(recvBuf, recvBuf.length);
+            s.receive(receivePacket);
+            
+            String message = new String(receivePacket.getData()).trim();
+
+            if(message.equals("LCC_CONNECTED")){
+                return true;
+            } else{
+                return false;
+            }
+        
+        } catch(SocketTimeoutException e){
+            return false;
+        } catch(IOException e){
+            e.printStackTrace();
+            return false;
+        }
+
+    }
  
     public static void main(String[] args) {
         launch(args);
@@ -222,7 +258,7 @@ public class LincolnClient extends Application{
                 userInput.setOnAction(E -> {
                     String response = userInput.getText();
 
-                    if(clientSocket.isConnected() && !clientSocket.isClosed() && response.length() > 0){
+                    if(clientSocket.isConnected() && !clientSocket.isClosed() && response.length() > 0 && connected){
                         out.println(response);
                         output(username + ": " + response);
                     }
