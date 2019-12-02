@@ -57,7 +57,7 @@ public class LincolnClient extends Application{
                     }
 
                     try{
-                        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, broadcast, 53);
+                        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, broadcast, 1337);
                         discSocket.send(sendPacket);
                     } catch(Exception e){
                         //e.printStackTrace();
@@ -166,7 +166,7 @@ public class LincolnClient extends Application{
 
         try{
             InetAddress serverIp = ip.poll(2000, TimeUnit.MILLISECONDS);    //Perhaps place on separate thread to prevent client from freezing on startup
-            startConnection(serverIp, 53);
+            startConnection(serverIp, 1337);
         } catch(Exception e){
             output("Failed to connect");
             e.printStackTrace();

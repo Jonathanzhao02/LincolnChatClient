@@ -9,7 +9,7 @@ import java.io.*;
  * Allow kicking of users (perhaps using javafx application layout)
  * Possible profanity filter start (WORKING)
  * Ensure not too many messages from one user within single timeframe (DONE)
-*/
+*/ 
 
 public class LincolnServer {
 	private int maxUsers = 100;
@@ -17,7 +17,10 @@ public class LincolnServer {
 	private Socket clientSocket;
 	private User[] clients = new User[maxUsers];
 	private DiscoveryHandler discovery;
-	private int port = 53;
+	private int port = 1337;
+	private String[] swears;
+	private String[] words;
+	//Port 53 is reserved for DNS and I don't think that's cash money
 	
 	private void start() throws Exception{
 		serverSocket = new ServerSocket(port);
@@ -25,6 +28,34 @@ public class LincolnServer {
 		ClientHandler.setUserList(clients);
 		discovery.start();
 		System.out.println("Server started");
+
+		try {
+            ObjectInputStream filereader = new ObjectInputStream(new FileInputStream("swears.jobj"));
+
+            swears = (String[]) filereader.readObject();
+            // Reads the array of primes from a file
+
+            filereader.close();
+        } catch (IOException e) {
+            swears = new String[0];
+        } catch (ClassNotFoundException e) {
+            swears = new String[0];
+            // Make sure to catch these and do nothing
+        }
+        try {
+            ObjectInputStream filereader = new ObjectInputStream(new FileInputStream("words.jobj"));
+
+            words = (String[]) filereader.readObject();
+            // Reads the array of primes from a file
+
+            filereader.close();
+        } catch (IOException e) {
+            words = new String[0];
+        } catch (ClassNotFoundException e) {
+            words = new String[0];
+            // Make sure to catch these and do nothing
+        }
+
 
 		while(true){
 			clientSocket = serverSocket.accept();
@@ -73,7 +104,7 @@ public class LincolnServer {
 
 				if(clients[i] == null || !clients[i].getSocket().isConnected()){
 					clients[i] = new User(s);
-					new ClientHandler(clients[i]).start();
+					new ClientHandler(clients[i], swears, words).start();
 					i = maxUsers;
 					added = true;
 				}
